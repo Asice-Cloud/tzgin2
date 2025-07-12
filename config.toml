@@ -1,0 +1,18 @@
+remote_addr = "https://ghproxy.net/https://github.com/xjtu-tenzor/tz-gin-template/archive/refs/heads/master.zip"
+
+[app]
+name = "tz-gin-cli"
+usage = "quickly build tenzor normalizing tz-gin code"
+version = "0.5.17"
+
+[[app.authors]]
+name = "tenzor/tiaozhan"
+email = "contact@tiaozhan.com"
+
+[[app.authors]]
+name = "xinzhou"
+email = "xinzhou@tiaozhan.com"
+
+[[app.authors]]
+name = "libowen"
+email = "libowen@tiaozhan.com"
