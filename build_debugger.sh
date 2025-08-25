@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # 构建调试器
-echo "Building tz-gin debugger..."
-go build -o tz-gin .
+echo "Building tzgin2 debugger..."
+go build -o tzgin2 .
 
 # 创建测试程序
 echo "Creating test program..."
@@ -41,9 +41,9 @@ go build -gcflags="-N -l" -o test_program test_program.go
 echo "Setup complete!"
 echo ""
 echo "To start debugging:"
-echo "1. ./tz-gin debug"
+echo "1. ./tzgin2 debug"
 echo "2. In debugger: launch ./test_program"
-echo "3. In debugger: break fibonacci"
+echo "3. In debugger: break main.fibonacci"
 echo "4. In debugger: continue"
 echo ""
 echo "Available commands in debugger:"

@@ -22,7 +22,7 @@ func NewREPL(debugger *Debugger) *REPL {
 }
 
 func (r *REPL) Start() {
-	fmt.Println("TZ-Gin Debugger v1.0")
+	fmt.Println("TZGin2 Debugger v1.0")
 	fmt.Println("Type 'help' for available commands")
 
 	for {

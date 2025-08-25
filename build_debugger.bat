@@ -1,7 +1,7 @@
 @echo off
 REM 构建调试器
-echo Building tz-gin debugger...
-go build -o tz-gin.exe .
+echo Building tzgin2 debugger...
+go build -o tzgin2.exe .
 
 REM 创建测试程序
 echo Creating test program...
@@ -40,7 +40,7 @@ go build -gcflags="-N -l" -o test_program.exe test_program.go
 echo Setup complete!
 echo.
 echo To start debugging:
-echo 1. tz-gin.exe debug
+echo 1. tzgin2.exe debug
 echo 2. In debugger: launch ./test_program.exe
 echo 3. In debugger: break fibonacci
 echo 4. In debugger: continue

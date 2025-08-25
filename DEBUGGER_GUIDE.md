@@ -1,29 +1,30 @@
-# TZ-Gin 调试器使用指南
+# TZGin2 调试器使用指南
 
 ## 概述
 
-TZ-Gin 调试器是一个简化版的交互式调试器，类似于 GDB 或 Delve。它提供了基本的调试功能，包括进程控制、断点管理、内存查看等。
+TZGin2 调试器是一个简化版的交互式调试器，类似于 GDB 或 Delve。它提供了基本的调试功能，包括进程控制、断点管理、内存查看等。
 
 ## 快速开始
 
 ### 1. 构建项目
 
 ```bash
-# Windows
-go build -o tz-gin.exe .
-
 # Linux/macOS
-go build -o tz-gin .
+go build -o tzgin2 .
+
+# Windows
+go build -o tzgin2.exe .
+
 ```
 
 ### 2. 启动调试器
 
 ```bash
 # Windows
-tz-gin.exe debug
+tzgin2.exe debug
 
 # Linux/macOS
-./tz-gin debug
+./tzgin2 debug
 ```
 
 ### 3. 创建测试程序
@@ -72,7 +73,7 @@ go build -gcflags="-N -l" -o test_program test_program.go
 
 ```bash
 (tzdb) launch ./test_program
-(tzdb) break fibonacci
+(tzdb) break main.fibonacci
 (tzdb) continue
 (tzdb) registers
 (tzdb) memory 0x401000 32
@@ -117,8 +118,8 @@ go build -gcflags="-N -l" -o test_program test_program.go
 ### 完整的调试会话
 
 ```bash
-$ tz-gin debug
-TZ-Gin Debugger v1.0
+$ tzgin2 debug
+TZGin2 Debugger v1.0
 Type 'help' for available commands
 
 (tzdb) launch ./test_program
