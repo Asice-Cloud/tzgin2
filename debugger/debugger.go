@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"syscall"
 )
 
 type Debugger struct {
@@ -87,17 +88,33 @@ func (d *Debugger) loadSymbols() error {
 
 // Launch
 func (d *Debugger) Launch(args []string) error {
-	cmd := exec.Command(d.Executable, args...)
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start process: %v", err)
+	if runtime.GOOS == "linux" && runtime.GOARCH == "amd64" {
+		cmd := exec.Command(d.Executable, args...)
+		cmd.SysProcAttr = &syscall.SysProcAttr{Ptrace: true}
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("failed to start process: %v", err)
+		}
+		d.Process = cmd.Process
+		d.IsRunning = true
+		// 等待子进程在 execve 处暂停
+		var ws syscall.WaitStatus
+		_, err := syscall.Wait4(d.Process.Pid, &ws, 0, nil)
+		if err != nil {
+			return fmt.Errorf("wait4 failed: %v", err)
+		}
+		fmt.Printf("Process started with PID: %d\n", d.Process.Pid)
+		return nil
+	} else {
+		// 其他平台维持原有模拟
+		cmd := exec.Command(d.Executable, args...)
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("failed to start process: %v", err)
+		}
+		d.Process = cmd.Process
+		d.IsRunning = true
+		fmt.Printf("Process started with PID: %d\n", d.Process.Pid)
+		return nil
 	}
-
-	d.Process = cmd.Process
-	d.IsRunning = true
-
-	fmt.Printf("Process started with PID: %d\n", d.Process.Pid)
-	return nil
 }
 
 // Continue
@@ -105,15 +122,57 @@ func (d *Debugger) Continue() error {
 	if !d.IsRunning {
 		return fmt.Errorf("process is not running")
 	}
-
-	_, err := d.Process.Wait()
-	if err != nil {
-		return fmt.Errorf("process wait failed: %v", err)
+	if runtime.GOOS == "linux" && runtime.GOARCH == "amd64" {
+		if err := syscall.PtraceCont(d.Process.Pid, 0); err != nil {
+			return fmt.Errorf("ptrace cont failed: %v", err)
+		}
+		for {
+			var ws syscall.WaitStatus
+			_, err := syscall.Wait4(d.Process.Pid, &ws, 0, nil)
+			if err != nil {
+				return fmt.Errorf("wait4 failed: %v", err)
+			}
+			if ws.Exited() {
+				d.IsRunning = false
+				fmt.Println("Process exited")
+				return nil
+			}
+			if ws.Stopped() && ws.StopSignal() == syscall.SIGTRAP {
+				// 命中断点
+				rip, err := getRegRIP(d.Process.Pid)
+				if err != nil {
+					return fmt.Errorf("get rip failed: %v", err)
+				}
+				bpAddr := rip - 1
+				bp, ok := d.Breakpoints[bpAddr]
+				if ok && bp.Enabled {
+					// 恢复原字节
+					orig := []byte{bp.OriginalByte}
+					_, err := syscall.PtracePokeData(d.Process.Pid, uintptr(bpAddr), orig)
+					if err != nil {
+						return fmt.Errorf("restore original byte failed: %v", err)
+					}
+					// rip 回退
+					if err := setRegRIP(d.Process.Pid, bpAddr); err != nil {
+						return fmt.Errorf("set rip failed: %v", err)
+					}
+					fmt.Printf("Hit breakpoint at 0x%x\n", bpAddr)
+					return nil
+				}
+				fmt.Println("Stopped (SIGTRAP)")
+				return nil
+			}
+		}
+	} else {
+		// 其他平台模拟
+		_, err := d.Process.Wait()
+		if err != nil {
+			return fmt.Errorf("process wait failed: %v", err)
+		}
+		d.IsRunning = false
+		fmt.Println("Process exited")
+		return nil
 	}
-
-	d.IsRunning = false
-	fmt.Println("Process exited")
-	return nil
 }
 
 // SetBreakpoint 设置断点
@@ -121,16 +180,55 @@ func (d *Debugger) SetBreakpoint(address uint64) error {
 	if !d.IsRunning {
 		return fmt.Errorf("process is not running")
 	}
-
-	// only save breakpoint information
-	d.Breakpoints[address] = &Breakpoint{
-		Address:      address,
-		OriginalByte: 0,
-		Enabled:      true,
+	if runtime.GOOS == "linux" && runtime.GOARCH == "amd64" {
+		// 读取原字节
+		data := make([]byte, 1)
+		_, err := syscall.PtracePeekData(d.Process.Pid, uintptr(address), data)
+		if err != nil {
+			return fmt.Errorf("peek data failed: %v", err)
+		}
+		orig := data[0]
+		// 写入 int3
+		_, err = syscall.PtracePokeData(d.Process.Pid, uintptr(address), []byte{0xcc})
+		if err != nil {
+			return fmt.Errorf("poke data failed: %v", err)
+		}
+		d.Breakpoints[address] = &Breakpoint{
+			Address:      address,
+			OriginalByte: orig,
+			Enabled:      true,
+		}
+		fmt.Printf("Breakpoint set at 0x%x\n", address)
+		return nil
+	} else {
+		// 其他平台模拟
+		d.Breakpoints[address] = &Breakpoint{
+			Address:      address,
+			OriginalByte: 0,
+			Enabled:      true,
+		}
+		fmt.Printf("Breakpoint set at 0x%x (simulation)\n", address)
+		return nil
 	}
+}
 
-	fmt.Printf("Breakpoint set at 0x%x (simulation)\n", address)
-	return nil
+// 获取 rip
+func getRegRIP(pid int) (uint64, error) {
+	var regs syscall.PtraceRegs
+	if err := syscall.PtraceGetRegs(pid, &regs); err != nil {
+		return 0, err
+	}
+	return regs.Rip, nil
+}
+
+// 设置 rip
+func setRegRIP(pid int, rip uint64) error {
+	var regs syscall.PtraceRegs
+	if err := syscall.PtraceGetRegs(pid, &regs); err != nil {
+		return err
+	}
+	regs.Rip = rip
+	return syscall.PtraceSetRegs(pid, &regs)
 }
 
 // RemoveBreakpoint 移除断点

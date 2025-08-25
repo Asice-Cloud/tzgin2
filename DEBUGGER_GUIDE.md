@@ -155,23 +155,24 @@ Type 'help' for available commands
 (tzdb) launch ./test_program
 Process started with PID: 12345
 
-(tzdb) break fibonacci
-Breakpoint set at 0x401100 (simulation)
+(tzdb) break main.fibonacci
+Breakpoint set at 0x493ae0
+Breakpoint set at 0x493ae0
 
-(tzdb) continue
-Process exited
+(tzdb) c
+Hit breakpoint at 0x493ae0
 
 (tzdb) registers
 Registers:
   rax: 0x1234567890abcdef
-  rbx: 0xfedcba0987654321
   rcx: 0x1111111111111111
   rdx: 0x2222222222222222
-  rsi: 0x3333333333333333
   rdi: 0x4444444444444444
-  rbp: 0x7fff12345678
-  rsp: 0x7fff12345000
-  rip: 0x401000
+  rsp: 0x00007fff12345000
+  rip: 0x0000000000401000
+  rbx: 0xfedcba0987654321
+  rsi: 0x3333333333333333
+  rbp: 0x00007fff12345678
 
 (tzdb) memory 0x401000 32
 Memory dump at 0x401000:
