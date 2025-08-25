@@ -1,6 +1,6 @@
 #!/bin/bash
-
-# 构建调试器
+echo "[INFO] Building tzgin2 debugger (仅支持 Linux/amd64)..."
+GOOS=linux GOARCH=amd64 go build -o tzgin2 .
 echo "Building tzgin2 debugger..."
 go build -o tzgin2 .
 
@@ -8,7 +8,6 @@ go build -o tzgin2 .
 echo "Creating test program..."
 cat > test_program.go << 'EOF'
 package main
-
 import (
     "fmt"
     "time"

@@ -1,35 +1,54 @@
 # TZGin2 调试器使用指南
 
+> 仅支持 Linux/amd64 环境，断点/寄存器/内存等功能需 root 权限或有 ptrace 能力。
+
 ## 概述
 
 TZGin2 调试器是一个简化版的交互式调试器，类似于 GDB 或 Delve。它提供了基本的调试功能，包括进程控制、断点管理、内存查看等。
 
 ## 快速开始
 
+go build -o tzgin2 .
+go build -o tzgin2.exe .
 ### 1. 构建项目
 
 ```bash
-# Linux/macOS
-go build -o tzgin2 .
-
-# Windows
-go build -o tzgin2.exe .
-
+# 推荐仅在 Linux/amd64 下构建
+GOOS=linux GOARCH=amd64 go build -o tzgin2 .
 ```
 
+tzgin2.exe debug
 ### 2. 启动调试器
 
 ```bash
-# Windows
-tzgin2.exe debug
-
-# Linux/macOS
 ./tzgin2 debug
 ```
 
 ### 3. 创建测试程序
 
 创建一个简单的 Go 程序用于测试：
+### 4. 调试流程示例
+
+```sh
+# 1. 启动调试器
+./tzgin2 debug
+# 2. 在调试器中加载目标程序
+launch ./test_program
+# 3. 设置断点（Go 需用 main.前缀）
+break main.fibonacci
+# 4. 继续执行，命中断点后可 step、registers、memory 等
+continue
+registers
+step
+memory 0x地址 32
+stack
+```
+
+> 注意：Go 程序断点需用 main.前缀，如 main.fibonacci。
+
+#### 常见问题
+- 断点无效或直接退出：请确认已用 break main.函数名，且目标程序为 debug 编译。
+- 仅支持 Linux/amd64，其他平台为模拟。
 
 ```go
 // test_program.go
