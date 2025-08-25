@@ -52,6 +52,7 @@ func (r *REPL) Start() {
 }
 
 func (r *REPL) executeCommand(command string, args []string) error {
+
 	switch command {
 	case "help", "h":
 		r.printHelp()
@@ -240,6 +241,62 @@ func (r *REPL) executeCommand(command string, args []string) error {
 		}
 		fmt.Println("Goodbye!")
 		os.Exit(0)
+	case "print", "printvar":
+		if r.Debugger == nil {
+			return fmt.Errorf("no program loaded")
+		}
+		if len(args) == 0 {
+			return fmt.Errorf("usage: print <varname> [size]")
+		}
+		varname := args[0]
+		size := 8 // 默认读取8字节
+		if len(args) > 1 {
+			if s, err := strconv.Atoi(args[1]); err == nil {
+				size = s
+			}
+		}
+		addr, err := r.Debugger.FindVariableAddress(varname)
+		if err != nil {
+			return err
+		}
+		data, err := r.Debugger.ReadMemory(addr, size)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s (0x%x): ", varname, addr)
+		for _, b := range data {
+			fmt.Printf("%02x ", b)
+		}
+		fmt.Println()
+		return nil
+
+	case "set", "setvar":
+		if r.Debugger == nil {
+			return fmt.Errorf("no program loaded")
+		}
+		if len(args) < 2 {
+			return fmt.Errorf("usage: set <varname> <value>")
+		}
+		varname := args[0]
+		valueStr := args[1]
+		addr, err := r.Debugger.FindVariableAddress(varname)
+		if err != nil {
+			return err
+		}
+		// 只支持写入8字节整数
+		value, err := strconv.ParseUint(valueStr, 0, 64)
+		if err != nil {
+			return fmt.Errorf("invalid value: %s", valueStr)
+		}
+		data := make([]byte, 8)
+		for i := 0; i < 8; i++ {
+			data[i] = byte((value >> (8 * i)) & 0xFF)
+		}
+		if err := r.Debugger.WriteMemory(addr, data); err != nil {
+			return err
+		}
+		fmt.Printf("Set %s (0x%x) = 0x%x\n", varname, addr, value)
+		return nil
 
 	default:
 		return fmt.Errorf("unknown command: %s", command)

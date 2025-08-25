@@ -292,3 +292,36 @@ func (d *Debugger) Kill() error {
 	fmt.Println("Process killed")
 	return nil
 }
+
+// FindVariableAddress 查找变量的内存地址（仅支持全局变量/简单场景）
+func (d *Debugger) FindVariableAddress(name string) (uint64, error) {
+	if d.DwarfData == nil {
+		return 0, fmt.Errorf("no DWARF data loaded")
+	}
+	reader := d.DwarfData.Reader()
+	for {
+		entry, err := reader.Next()
+		if err != nil {
+			break
+		}
+		if entry == nil {
+			break
+		}
+		if entry.Tag == dwarf.TagVariable {
+			nameAttr := entry.Val(dwarf.AttrName)
+			if nameAttr != nil && nameAttr.(string) == name {
+				locAttr := entry.Val(dwarf.AttrLocation)
+				if locAttr != nil {
+					// 这里只处理简单的全局变量地址（表达式为地址常量）
+					loc, ok := locAttr.([]byte)
+					if ok && len(loc) >= 9 && loc[0] == 3 { // DW_OP_addr
+						addr := uint64(loc[1]) | uint64(loc[2])<<8 | uint64(loc[3])<<16 | uint64(loc[4])<<24 |
+							uint64(loc[5])<<32 | uint64(loc[6])<<40 | uint64(loc[7])<<48 | uint64(loc[8])<<56
+						return addr, nil
+					}
+				}
+			}
+		}
+	}
+	return 0, fmt.Errorf("variable '%s' not found or unsupported location", name)
+}

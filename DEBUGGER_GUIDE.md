@@ -127,10 +127,21 @@ go build -gcflags="-N -l" -o test_program test_program.go
 
 ### 信息查看
 
+
 - `registers, regs, r` - 显示寄存器值
 - `memory <address> [size]` - 显示内存内容
   - `memory 0x7fff12345678 32` - 显示从地址开始的32字节
 - `stack, bt` - 显示堆栈跟踪
+
+### 变量查看与修改
+
+- `print <变量名> [size]` 或 `printvar <变量名> [size]` - 查看变量值（仅支持全局变量，size为可选字节数，默认8字节）
+  - 例：`print myGlobalVar`  
+  - 例：`print myGlobalVar 4`
+- `set <变量名> <值>` 或 `setvar <变量名> <值>` - 修改变量值（仅支持整数类型全局变量，按8字节写入）
+  - 例：`set myGlobalVar 1234`
+
+> 注意：变量操作目前仅支持全局变量，且类型支持有限，复杂类型和局部变量后续可扩展。
 
 ## 使用示例
 
@@ -173,6 +184,12 @@ Stack trace:
   #1: 0x401100 main.fibonacci
   #2: 0x401110 main.fibonacci
   #3: 0x401120 runtime.main
+
+(tzdb) print myGlobalVar
+myGlobalVar (0x601040): 39 30 00 00 00 00 00 00
+
+(tzdb) set myGlobalVar 1234
+Set myGlobalVar (0x601040) = 0x4d2
 
 (tzdb) quit
 Goodbye!
