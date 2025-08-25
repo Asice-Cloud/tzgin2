@@ -391,12 +391,51 @@ func (d *Debugger) Kill() error {
 	return nil
 }
 
-// FindVariableAddress 查找变量的内存地址（仅支持全局变量/简单场景）
-func (d *Debugger) FindVariableAddress(name string) (uint64, error) {
+// FindVariableAddress 查找变量的内存地址（支持当前函数局部变量和全局变量）
+// frameBase: 当前帧指针（rbp），currentFunc: 当前函数名。若 frameBase=0 或 currentFunc=""，只查全局变量。
+func (d *Debugger) FindVariableAddress(name string, frameBase uint64, currentFunc string) (uint64, error) {
 	if d.DwarfData == nil {
 		return 0, fmt.Errorf("no DWARF data loaded")
 	}
 	reader := d.DwarfData.Reader()
+	var inFunc bool
+	for {
+		entry, err := reader.Next()
+		if err != nil {
+			break
+		}
+		if entry == nil {
+			break
+		}
+		// 进入当前函数作用域
+		if entry.Tag == dwarf.TagSubprogram {
+			nameAttr := entry.Val(dwarf.AttrName)
+			if nameAttr != nil && nameAttr.(string) == currentFunc {
+				inFunc = true
+			} else {
+				inFunc = false
+			}
+		}
+		// 局部变量或参数
+		if inFunc && (entry.Tag == dwarf.TagVariable || entry.Tag == dwarf.TagFormalParameter) {
+			nameAttr := entry.Val(dwarf.AttrName)
+			if nameAttr != nil && nameAttr.(string) == name {
+				locAttr := entry.Val(dwarf.AttrLocation)
+				if locAttr != nil {
+					loc, ok := locAttr.([]byte)
+					// 支持 DW_OP_fbreg
+					if ok && len(loc) >= 2 && loc[0] == 0x91 && frameBase != 0 { // DW_OP_fbreg
+						// DW_OP_fbreg: 0x91 <sleb128 offset>
+						offset := int8(loc[1]) // sleb128 简化处理
+						addr := frameBase + uint64(offset)
+						return addr, nil
+					}
+				}
+			}
+		}
+	}
+	// 没找到局部变量，查全局变量
+	reader = d.DwarfData.Reader()
 	for {
 		entry, err := reader.Next()
 		if err != nil {
@@ -410,7 +449,6 @@ func (d *Debugger) FindVariableAddress(name string) (uint64, error) {
 			if nameAttr != nil && nameAttr.(string) == name {
 				locAttr := entry.Val(dwarf.AttrLocation)
 				if locAttr != nil {
-					// 这里只处理简单的全局变量地址（表达式为地址常量）
 					loc, ok := locAttr.([]byte)
 					if ok && len(loc) >= 9 && loc[0] == 3 { // DW_OP_addr
 						addr := uint64(loc[1]) | uint64(loc[2])<<8 | uint64(loc[3])<<16 | uint64(loc[4])<<24 |

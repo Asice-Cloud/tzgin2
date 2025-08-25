@@ -2,16 +2,22 @@ package debugger
 
 import (
 	"bufio"
+	"debug/dwarf"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 )
 
 // REPL 交互式调试器界面
 type REPL struct {
 	Debugger *Debugger
 	Scanner  *bufio.Scanner
+	// 当前帧信息
+	lastFunc string
+	lastRbp  uint64
+	lastRip  uint64
 }
 
 func NewREPL(debugger *Debugger) *REPL {
@@ -20,7 +26,6 @@ func NewREPL(debugger *Debugger) *REPL {
 		Scanner:  bufio.NewScanner(os.Stdin),
 	}
 }
-
 func (r *REPL) Start() {
 	fmt.Println("TZGin2 Debugger v1.0")
 	fmt.Println("Type 'help' for available commands")
@@ -76,7 +81,16 @@ func (r *REPL) executeCommand(command string, args []string) error {
 		if r.Debugger == nil {
 			return fmt.Errorf("no program loaded")
 		}
-		return r.Debugger.Continue()
+		err := r.Debugger.Continue()
+		// 命中断点时，尝试获取 rip/rbp 并推断当前函数名
+		if err == nil && r.Debugger.IsRunning {
+			rip, rbp := getRipRbp(r.Debugger.Process.Pid)
+			r.lastRip = rip
+			r.lastRbp = rbp
+			funcName, _ := findFuncByRip(r.Debugger, rip)
+			r.lastFunc = funcName
+		}
+		return err
 
 	case "break", "b":
 		if r.Debugger == nil {
@@ -134,7 +148,15 @@ func (r *REPL) executeCommand(command string, args []string) error {
 		if r.Debugger == nil {
 			return fmt.Errorf("no program loaded")
 		}
-		return r.Debugger.Step()
+		err := r.Debugger.Step()
+		if err == nil && r.Debugger.IsRunning {
+			rip, rbp := getRipRbp(r.Debugger.Process.Pid)
+			r.lastRip = rip
+			r.lastRbp = rbp
+			funcName, _ := findFuncByRip(r.Debugger, rip)
+			r.lastFunc = funcName
+		}
+		return err
 
 	case "registers", "regs", "r":
 		if r.Debugger == nil {
@@ -255,7 +277,13 @@ func (r *REPL) executeCommand(command string, args []string) error {
 				size = s
 			}
 		}
-		addr, err := r.Debugger.FindVariableAddress(varname)
+		var addr uint64
+		var err error
+		if r.lastFunc != "" && r.lastRbp != 0 {
+			addr, err = r.Debugger.FindVariableAddress(varname, r.lastRbp, r.lastFunc)
+		} else {
+			addr, err = r.Debugger.FindVariableAddress(varname, 0, "")
+		}
 		if err != nil {
 			return err
 		}
@@ -279,7 +307,13 @@ func (r *REPL) executeCommand(command string, args []string) error {
 		}
 		varname := args[0]
 		valueStr := args[1]
-		addr, err := r.Debugger.FindVariableAddress(varname)
+		var addr uint64
+		var err error
+		if r.lastFunc != "" && r.lastRbp != 0 {
+			addr, err = r.Debugger.FindVariableAddress(varname, r.lastRbp, r.lastFunc)
+		} else {
+			addr, err = r.Debugger.FindVariableAddress(varname, 0, "")
+		}
 		if err != nil {
 			return err
 		}
@@ -301,8 +335,43 @@ func (r *REPL) executeCommand(command string, args []string) error {
 	default:
 		return fmt.Errorf("unknown command: %s", command)
 	}
-
 	return nil
+}
+
+// 获取 rip/rbp
+func getRipRbp(pid int) (uint64, uint64) {
+	var regs syscall.PtraceRegs
+	if err := syscall.PtraceGetRegs(pid, &regs); err != nil {
+		return 0, 0
+	}
+	return regs.Rip, regs.Rbp
+}
+
+// 通过 rip 查找当前函数名
+func findFuncByRip(dbg *Debugger, rip uint64) (string, error) {
+	if dbg.DwarfData == nil {
+		return "", fmt.Errorf("no DWARF data")
+	}
+	reader := dbg.DwarfData.Reader()
+	for {
+		entry, err := reader.Next()
+		if err != nil || entry == nil {
+			break
+		}
+		if entry.Tag == dwarf.TagSubprogram {
+			lowpc := entry.Val(dwarf.AttrLowpc)
+			highpc := entry.Val(dwarf.AttrHighpc)
+			nameAttr := entry.Val(dwarf.AttrName)
+			if lowpc != nil && highpc != nil && nameAttr != nil {
+				l := lowpc.(uint64)
+				h := highpc.(uint64)
+				if rip >= l && rip < h {
+					return nameAttr.(string), nil
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("func not found for rip")
 }
 
 // printHelp

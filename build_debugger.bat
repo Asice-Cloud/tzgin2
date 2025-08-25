@@ -21,6 +21,8 @@ echo         result := fibonacci^(i^)
 echo         fmt.Printf^("fibonacci^(%%d^) = %%d\n", i, result^)
 echo         time.Sleep^(500 * time.Millisecond^)
 echo     }
+echo     re:=101
+echo     fmt.Println(re)
 echo     
 echo     fmt.Println^("Program finished"^)
 echo }

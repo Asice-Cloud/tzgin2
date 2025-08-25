@@ -21,7 +21,10 @@ func main() {
         fmt.Printf("fibonacci(%d) = %d\n", i, result)
         time.Sleep(500 * time.Millisecond)
     }
-    
+        
+    re:=101
+    fmt.Println(re)
+
     fmt.Println("Program finished")
 }
 

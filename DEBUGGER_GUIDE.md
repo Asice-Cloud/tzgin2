@@ -68,6 +68,9 @@ func main() {
         time.Sleep(500 * time.Millisecond)
     }
     
+    re:=101
+    fmt.Println(re)
+
     fmt.Println("Program finished")
 }
 
@@ -99,6 +102,24 @@ go build -gcflags="-N -l" -o test_program test_program.go
 (tzdb) stack
 (tzdb) step
 (tzdb) quit
+```
+
+```
+(tzdb) launch ./test_program
+Process started with PID: 92091
+(tzdb) break main.main
+Breakpoint set at 0x493880
+Breakpoint set at 0x493880
+(tzdb) c
+Hit breakpoint at 0x493880
+(tzdb) print i
+i (0xc000096f70): 70 71 72 73 74 75 76 77 
+(tzdb) print result
+result (0xc000096f60): 60 61 62 63 64 65 66 67 
+(tzdb) set i 3
+Writing 8 bytes to 0xc000096f70 (simulation)
+Set i (0xc000096f70) = 0x3
+
 ```
 
 ## 命令参考
