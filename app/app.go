@@ -3,9 +3,9 @@ package app
 import (
 	"os"
 
-	"github.com/xjtu-tenzor/tz-gin/command"
-	"github.com/xjtu-tenzor/tz-gin/config"
-	"github.com/xjtu-tenzor/tz-gin/util"
+	"github.com/Asice-Cloud/tzgin2/command"
+	"github.com/Asice-Cloud/tzgin2/config"
+	"github.com/Asice-Cloud/tzgin2/util"
 
 	"github.com/urfave/cli/v2"
 

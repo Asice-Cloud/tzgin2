@@ -1,8 +1,8 @@
 package command
 
 import (
+	"github.com/Asice-Cloud/tzgin2/debugger"
 	"github.com/urfave/cli/v2"
-	"github.com/xjtu-tenzor/tz-gin/debugger"
 )
 
 func Debug(c *cli.Context) error {

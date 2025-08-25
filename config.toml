@@ -1,9 +1,9 @@
-remote_addr = "https://ghproxy.net/https://github.com/xjtu-tenzor/tz-gin-template/archive/refs/heads/master.zip"
+remote_addr = "https://ghproxy.net/https://github.com/Asice-Cloud/tzgin2-template/archive/refs/heads/master.zip"
 
 [app]
 name = "tz-gin-cli"
 usage = "quickly build tenzor normalizing tz-gin code"
-version = "0.5.17"
+version = "2.0"
 
 [[app.authors]]
 name = "tenzor/tiaozhan"
@@ -16,3 +16,7 @@ email = "xinzhou@tiaozhan.com"
 [[app.authors]]
 name = "libowen"
 email = "libowen@tiaozhan.com"
+
+[[app.authors]]
+name = "asice cloud"
+email = "sunyuanlong@tiaozhan.com"

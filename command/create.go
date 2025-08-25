@@ -13,8 +13,8 @@ import (
 
 	_ "embed"
 
+	"github.com/Asice-Cloud/tzgin2/util"
 	"github.com/urfave/cli/v2"
-	"github.com/xjtu-tenzor/tz-gin/util"
 )
 
 var directoryString *string

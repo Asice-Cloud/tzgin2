@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"os"
 
-	"github.com/xjtu-tenzor/tz-gin/app"
-	"github.com/xjtu-tenzor/tz-gin/util"
+	"github.com/Asice-Cloud/tzgin2/app"
+	"github.com/Asice-Cloud/tzgin2/util"
 )
 
 //go:embed config.toml

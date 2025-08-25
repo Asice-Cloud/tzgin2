@@ -1,15 +1,13 @@
-module github.com/xjtu-tenzor/tz-gin
+module github.com/Asice-Cloud/tzgin2
 
-go 1.18
+go 1.24
 
 require (
-	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/logrusorgru/aurora/v3 v3.0.0
 	github.com/spf13/viper v1.12.0
 	github.com/urfave/cli/v2 v2.25.7
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/sys v0.5.0
 )
 
 require (

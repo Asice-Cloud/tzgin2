@@ -17,9 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Asice-Cloud/tzgin2/util"
 	"github.com/fsnotify/fsnotify"
 	"github.com/urfave/cli/v2"
-	"github.com/xjtu-tenzor/tz-gin/util"
 	"golang.org/x/mod/semver"
 )
 
